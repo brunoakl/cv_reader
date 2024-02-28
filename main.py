@@ -1,4 +1,5 @@
 import spacy
+import PyPDF2
 
 # Carregar o modelo de língua inglesa do spaCy
 nlp = spacy.load("en_core_web_sm")
@@ -36,9 +37,18 @@ def extrair_informacoes(curriculo_texto):
         "Habilidades": habilidades
     }
 
+def ler_pdf(nome_arquivo):
+    texto = ""
+    with open(nome_arquivo, "rb") as arquivo_pdf:
+        leitor_pdf = PyPDF2.PdfFileReader(arquivo_pdf)
+        num_paginas = leitor_pdf.numPages
+        for pagina_num in range(num_paginas):
+            pagina = leitor_pdf.getPage(pagina_num)
+            texto += pagina.extractText()
+    return texto
+
 # Exemplo de uso
-curriculo = """
-[Seu currículo em texto aqui]
-"""
-informacoes = extrair_informacoes(curriculo)
+nome_arquivo_pdf = input("Qual o nome do arquivo a ser lido? \n")
+texto_curriculo = ler_pdf(nome_arquivo_pdf)
+informacoes = extrair_informacoes(texto_curriculo)
 print(informacoes)
