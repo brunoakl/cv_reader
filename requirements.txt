@@ -20,6 +20,7 @@ packaging==23.2
 preshed==3.0.9
 pydantic==2.6.2
 pydantic_core==2.16.3
+PyPDF2 == 3.0.1
 requests==2.31.0
 setuptools==69.1.1
 smart-open==6.4.0
