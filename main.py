@@ -1,13 +1,12 @@
 import spacy
-import PyPDF2
+import pdfplumber
+import re
 
-# Carregar o modelo de língua inglesa do spaCy
-nlp = spacy.load("en_core_web_sm")
+# Carregar o modelo de língua portuguesa do spaCy
+nlp = spacy.load("pt_core_news_sm")
 
+# Função para extrair informações do currículo
 def extrair_informacoes(curriculo_texto):
-    # Processar o texto do currículo
-    doc = nlp(curriculo_texto)
-
     # Inicializar variáveis para armazenar as informações extraídas
     nome = ""
     endereco = ""
@@ -15,18 +14,27 @@ def extrair_informacoes(curriculo_texto):
     experiencia = []
     habilidades = []
 
-    # Iterar sobre as entidades no documento
-    for entidade in doc.ents:
-        if entidade.label_ == "PERSON":
-            nome = entidade.text
-        elif entidade.label_ == "GPE":
-            endereco = entidade.text
-        elif entidade.label_ == "ORG" or entidade.label_ == "WORK_OF_ART":
-            experiencia.append(entidade.text)
-        elif entidade.label_ == "DATE":
-            educacao.append(entidade.text)
-        elif entidade.label_ == "SKILL":
-            habilidades.append(entidade.text)
+    # Identificar automaticamente as seções do currículo
+    secoes = re.split(r"\n(?=[A-Z\s]+:)", curriculo_texto)
+
+    # Iterar sobre as seções identificadas
+    for secao in secoes:
+        secao = secao.strip()
+        # Processar o texto da seção com o spaCy
+        doc = nlp(secao)
+
+        # Identificar entidades relevantes na seção
+        for entidade in doc.ents:
+            if entidade.label_ == "PER" and not nome:
+                nome = entidade.text
+            elif entidade.label_ == "LOC" and not endereco:
+                endereco = entidade.text
+            elif entidade.label_ == "ORG":
+                experiencia.append(entidade.text)
+            elif entidade.label_ == "DATE":
+                educacao.append(entidade.text)
+            elif entidade.label_ == "SKILL":
+                habilidades.append(entidade.text)
 
     # Retornar as informações extraídas
     return {
@@ -37,18 +45,22 @@ def extrair_informacoes(curriculo_texto):
         "Habilidades": habilidades
     }
 
+# Função para ler o arquivo PDF do currículo
 def ler_pdf(nome_arquivo):
     texto = ""
-    with open(nome_arquivo, "rb") as arquivo_pdf:
-        leitor_pdf = PyPDF2.PdfFileReader(arquivo_pdf)
-        num_paginas = leitor_pdf.numPages
-        for pagina_num in range(num_paginas):
-            pagina = leitor_pdf.getPage(pagina_num)
-            texto += pagina.extractText()
+    with pdfplumber.open(nome_arquivo) as pdf:
+        for page in pdf.pages:
+            texto += page.extract_text()
     return texto
 
-# Exemplo de uso
-nome_arquivo_pdf = input("Qual o nome do arquivo a ser lido? \n")
+# Solicitar ao usuário o nome do arquivo
+nome_arquivo_pdf = input("Qual o nome completo do arquivo a ser lido? ")
+
+# Ler o conteúdo do currículo
 texto_curriculo = ler_pdf(nome_arquivo_pdf)
+
+# Extrair informações do currículo
 informacoes = extrair_informacoes(texto_curriculo)
+
+# Exibir as informações extraídas
 print(informacoes)
